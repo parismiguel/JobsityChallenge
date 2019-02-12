@@ -34,7 +34,7 @@
     });
 
     $("#chat-message").click(function () {
-        $("#emojis-container").addClass("hidden")
+        $("#emojis-container").addClass("hidden");
     });
 
     // Upload image with Ajax
@@ -61,5 +61,10 @@
 
         console.log(files);
 
+    });
+
+    $("#iconSend").click(function () {
+        var e = $.Event("keypress", { keyCode: 13 });
+        $('#chat-message').trigger(e);
     });
 });

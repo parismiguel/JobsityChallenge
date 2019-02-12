@@ -53,6 +53,27 @@ namespace Chat.Web.Hubs
                 return;
             }
 
+            if (message.StartsWith("/test"))
+            {
+                using (var db = new ApplicationDbContext())
+                {
+                    var user = db.Users.Where(u => u.UserName == IdentityName).FirstOrDefault();
+                    var room = db.Rooms.Where(r => r.Name == roomName).FirstOrDefault();
+
+                    var _user = new ChatUser
+                    {
+                        Username = "Paris",
+                        DisplayName = "Batman",
+                        Avatar = user.Avatar,
+                        CurrentRoom = roomName,
+                        Device = "Web"
+                    };
+
+                    Clients.Caller.addUser(_user);
+                }
+
+            }
+
             SendToRoom(roomName, message);
 
         }

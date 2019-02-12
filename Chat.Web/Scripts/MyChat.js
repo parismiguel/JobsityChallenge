@@ -107,6 +107,12 @@
         // Server Operations
         sendNewMessage: function () {
             var self = this;
+
+            if (self.message().trim() === "" ) {
+                alert("Debe ingresar un texto");
+                return;
+            }
+
             chatHub.server.send(self.joinedRoom, self.message());
             self.message("");
         },
@@ -138,7 +144,7 @@
                         result[i].DisplayName,
                         result[i].Avatar,
                         result[i].CurrentRoom,
-                        result[i].Device))
+                        result[i].Device));
                 }
             });
 
