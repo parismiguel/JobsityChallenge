@@ -1,0 +1,75 @@
+﻿@model Chat.Web.Models.RegisterViewModel
+@{
+    ViewBag.Title = "Registrarse";
+}
+<div class="lr-container register-container">
+
+    @using (Html.BeginForm("Register", "Account", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+    {
+        @Html.AntiForgeryToken()
+        <h4>Crear una cuenta nueva</h4>
+        <hr />
+        @Html.ValidationSummary("", new { @class = "text-danger" })
+        <div class="form-group">
+            <div class="col-md-12">
+                @Html.TextBoxFor(m => m.Username, new { @class = "form-control", @placeholder = "Usuario" })
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-md-12">
+                @Html.TextBoxFor(m => m.Email, new { @class = "form-control", @placeholder = "Correo electrónico" })
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-md-12">
+                @Html.PasswordFor(m => m.Password, new { @class = "form-control", @placeholder = "Contraseña" })
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-md-12">
+                @Html.PasswordFor(m => m.ConfirmPassword, new { @class = "form-control", @placeholder = "Confirmar contraseña" })
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="col-md-12">
+                @Html.TextBoxFor(m => m.DisplayName, new { @class = "form-control", @placeholder = "Nombre para mostrar" })
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="col-md-12">
+                <p>Select your Avatar</p>
+                <label>
+                    @Html.RadioButtonFor(m => m.Avatar, "0", new { @checked = true })
+                    <img class="avatar-icon" src="~/Content/icons/avatar1.png" alt="" />
+                </label>
+                <label>
+                    @Html.RadioButtonFor(m => m.Avatar, "1")
+                    <img class="avatar-icon" src="~/Content/icons/avatar2.png" alt="" />
+                </label>
+                <label>
+                    @Html.RadioButtonFor(m => m.Avatar, "2")
+                    <img class="avatar-icon" src="~/Content/icons/avatar3.png" alt="" />
+                </label>
+                <label>
+                    @Html.RadioButtonFor(m => m.Avatar, "3")
+                    <img class="avatar-icon" src="~/Content/icons/avatar4.png" alt="" />
+                </label>
+            </div>
+        </div>
+
+
+        <div class="form-group">
+            <div class="col-md-12">
+                <input type="submit" class="btn btn-default btn-register" value="Registrarse" />
+            </div>
+        </div>
+    }
+
+    @Html.ActionLink("Ya tiene una cuenta?", "Login", "Account")
+</div>
+
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+}
