@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
-
-namespace Chat.Web.Models.ViewModels
+﻿namespace Chat.Web.Models.ViewModels
 {
     public class MessageViewModel
     {
@@ -12,5 +7,6 @@ namespace Chat.Web.Models.ViewModels
         public string From { get; set; }
         public string To { get; set; }
         public string Avatar { get; set; }
+        public bool IsPrivate { get; set; }
     }
 }

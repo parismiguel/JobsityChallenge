@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Web;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Chat.Web.Models
 {
@@ -17,7 +13,9 @@ namespace Chat.Web.Models
 
         public virtual ApplicationUser FromUser { get; set; }
 
-        [Required]
+        //[Required]
         public virtual Room ToRoom { get; set; }
+
+        public bool IsPrivate { get; set; }
     }
 }
