@@ -43,13 +43,13 @@ namespace Chat.Web.Hubs
 
             if (message.StartsWith("/stock=APPL"))
             {
-                SendStock(message, roomName, false);
+                SendStock(message, false);
                 return;
             }
 
             if (message.StartsWith("/day_range=APPL"))
             {
-                SendStock(message, roomName, true);
+                SendStock(message, true);
                 return;
             }
 
@@ -57,7 +57,7 @@ namespace Chat.Web.Hubs
 
         }
 
-        private void SendStock(string message, string roomName, bool dayrange)
+        private void SendStock(string message, bool dayrange)
         {
             Response stockResponse = Apis.GestStock();
 
@@ -85,12 +85,10 @@ namespace Chat.Web.Hubs
                     {
                         adminViewModel = Mapper.Map<ApplicationUser, UserViewModel>(admin);
                         adminViewModel.Device = "Web";
-                        adminViewModel.CurrentRoom = roomName;
+                        adminViewModel.CurrentRoom = "";
 
                         _Connections.Add(adminViewModel);
                         Clients.Caller.addUser(adminViewModel);
-
-                        Clients.OthersInGroup(roomName).addUser(adminViewModel);
 
                         _ConnectionsMap.Add(adminId, Context.ConnectionId);
                     }
@@ -198,17 +196,6 @@ namespace Chat.Web.Hubs
 
                         // Broadcast the message
                         var messageViewModel = Mapper.Map<Message, MessageViewModel>(msg);
-
-                        //// Build the message
-                        //MessageViewModel messageViewModel = new MessageViewModel()
-                        //{
-                        //    From = sender.DisplayName,
-                        //    Avatar = sender.Avatar,
-                        //    To = "",
-                        //    Content = Regex.Replace(message, @"(?i)<(?!img|a|/a|/img).*?>", string.Empty),
-                        //    Timestamp = DateTime.Now.ToLongTimeString(),
-                        //    IsPrivate = true
-                        //};
 
                         // Send the message
                         Clients.Client(userId).newMessage(messageViewModel);
