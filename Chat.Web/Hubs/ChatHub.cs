@@ -43,42 +43,21 @@ namespace Chat.Web.Hubs
 
             if (message.StartsWith("/stock=APPL"))
             {
-                SendStock(message, false);
+                SendStock(message, roomName, false);
                 return;
             }
 
             if (message.StartsWith("/day_range=APPL"))
             {
-                SendStock(message, true);
+                SendStock(message, roomName, true);
                 return;
-            }
-
-            if (message.StartsWith("/test"))
-            {
-                using (var db = new ApplicationDbContext())
-                {
-                    var user = db.Users.Where(u => u.UserName == IdentityName).FirstOrDefault();
-                    var room = db.Rooms.Where(r => r.Name == roomName).FirstOrDefault();
-
-                    var _user = new ChatUser
-                    {
-                        Username = "Paris",
-                        DisplayName = "Batman",
-                        Avatar = user.Avatar,
-                        CurrentRoom = roomName,
-                        Device = "Web"
-                    };
-
-                    Clients.Caller.addUser(_user);
-                }
-
             }
 
             SendToRoom(roomName, message);
 
         }
 
-        private void SendStock(string message, bool dayrange)
+        private void SendStock(string message, string roomName, bool dayrange)
         {
             Response stockResponse = Apis.GestStock();
 
@@ -95,25 +74,59 @@ namespace Chat.Web.Hubs
 
                 using (var db = new ApplicationDbContext())
                 {
-                    var user = db.Users.Where(u => u.UserName == IdentityName).FirstOrDefault();
+                    UserViewModel sender = _Connections.Where(u => u.Username == IdentityName).First();
+                    ApplicationUser user = db.Users.Where(u => u.UserName == IdentityName).FirstOrDefault();
+
+                    string adminId = "Administrador";
+                    UserViewModel adminViewModel = _Connections.Where(x => x.Username == adminId).FirstOrDefault();
+                    ApplicationUser admin = db.Users.Where(u => u.UserName == adminId).FirstOrDefault();
+
+                    if (adminViewModel == null)
+                    {
+                        adminViewModel = Mapper.Map<ApplicationUser, UserViewModel>(admin);
+                        adminViewModel.Device = "Web";
+                        adminViewModel.CurrentRoom = roomName;
+
+                        _Connections.Add(adminViewModel);
+                        Clients.Caller.addUser(adminViewModel);
+
+                        Clients.OthersInGroup(roomName).addUser(adminViewModel);
+
+                        _ConnectionsMap.Add(adminId, Context.ConnectionId);
+                    }
 
                     // Create and save message in database
-                    Message msg = new Message()
+                    Message msgIn = new Message()
                     {
-                        Content = output,
+                        Content = Regex.Replace(message, @"(?i)<(?!img|a|/a|/img).*?>", string.Empty),
                         Timestamp = DateTime.Now.Ticks.ToString(),
                         FromUser = user,
                         IsPrivate = true
                     };
 
-                    db.Messages.Add(msg);
+                    db.Messages.Add(msgIn);
                     db.SaveChanges();
 
-                    // Broadcast the message
-                    var messageViewModel = Mapper.Map<Message, MessageViewModel>(msg);
+                    MessageViewModel messageInViewModel = Mapper.Map<Message, MessageViewModel>(msgIn);
 
-                    // Send the message
-                    Clients.Caller.newMessage(messageViewModel);
+                    Message msgOut = new Message()
+                    {
+                        Content = output,
+                        Timestamp = DateTime.Now.Ticks.ToString(),
+                        FromUser = admin,
+                        IsPrivate = true
+                    };
+
+                    db.Messages.Add(msgOut);
+                    db.SaveChanges();
+
+                    MessageViewModel messageOutViewModel = Mapper.Map<Message, MessageViewModel>(msgOut);
+
+                    // Broadcast the message
+                    Clients.Client(adminId).newMessage(messageInViewModel);
+
+                    Clients.Caller.newMessage(messageInViewModel);
+                    Clients.Caller.newMessage(messageOutViewModel);
                 }
 
             }
@@ -136,7 +149,7 @@ namespace Chat.Web.Hubs
                     output.Symbol = line[0];
                     output.Date = line[1];
                     output.Time = line[2];
-                    output.Symbol = line[3];
+                    output.Open = line[3];
                     output.High = double.Parse(line[4]);
                     output.Low = double.Parse(line[5]);
                     output.Close = double.Parse(line[6]);
@@ -153,53 +166,61 @@ namespace Chat.Web.Hubs
 
         public void SendPrivate(string message)
         {
-            // message format: /private(receiverName) Lorem ipsum...
-            string[] split = message.Split(')');
-            string receiver = split[0].Split('(')[1];
-
-            if (_ConnectionsMap.TryGetValue(receiver, out string userId))
+            try
             {
-                using (var db = new ApplicationDbContext())
+                // message format: /private(receiverName) Lorem ipsum...
+                string[] split = message.Split(')');
+                string receiver = split[0].Split('(')[1];
+
+                if (_ConnectionsMap.TryGetValue(receiver, out string userId))
                 {
-
-                    // Who is the sender;
-                    var sender = _Connections.Where(u => u.Username == IdentityName).First();
-
-                    message = Regex.Replace(message, @"\/private\(.*?\)", string.Empty).Trim();
-
-                    var user = db.Users.Where(u => u.UserName == IdentityName).FirstOrDefault();
-
-                    // Create and save message in database
-                    Message msg = new Message()
+                    using (var db = new ApplicationDbContext())
                     {
-                        Content = Regex.Replace(message, @"(?i)<(?!img|a|/a|/img).*?>", string.Empty),
-                        Timestamp = DateTime.Now.Ticks.ToString(),
-                        FromUser = user,
-                        IsPrivate = true
-                    };
 
-                    db.Messages.Add(msg);
-                    db.SaveChanges();
+                        // Who is the sender;
+                        var sender = _Connections.Where(u => u.Username == IdentityName).First();
 
-                    // Broadcast the message
-                    var messageViewModel = Mapper.Map<Message, MessageViewModel>(msg);
+                        message = Regex.Replace(message, @"\/private\(.*?\)", string.Empty).Trim();
 
-                    //// Build the message
-                    //MessageViewModel messageViewModel = new MessageViewModel()
-                    //{
-                    //    From = sender.DisplayName,
-                    //    Avatar = sender.Avatar,
-                    //    To = "",
-                    //    Content = Regex.Replace(message, @"(?i)<(?!img|a|/a|/img).*?>", string.Empty),
-                    //    Timestamp = DateTime.Now.ToLongTimeString(),
-                    //    IsPrivate = true
-                    //};
+                        var user = db.Users.Where(u => u.UserName == IdentityName).FirstOrDefault();
 
-                    // Send the message
-                    Clients.Client(userId).newMessage(messageViewModel);
-                    Clients.Caller.newMessage(messageViewModel);
+                        // Create and save message in database
+                        Message msg = new Message()
+                        {
+                            Content = Regex.Replace(message, @"(?i)<(?!img|a|/a|/img).*?>", string.Empty),
+                            Timestamp = DateTime.Now.Ticks.ToString(),
+                            FromUser = user,
+                            IsPrivate = true
+                        };
+
+                        db.Messages.Add(msg);
+                        db.SaveChanges();
+
+                        // Broadcast the message
+                        var messageViewModel = Mapper.Map<Message, MessageViewModel>(msg);
+
+                        //// Build the message
+                        //MessageViewModel messageViewModel = new MessageViewModel()
+                        //{
+                        //    From = sender.DisplayName,
+                        //    Avatar = sender.Avatar,
+                        //    To = "",
+                        //    Content = Regex.Replace(message, @"(?i)<(?!img|a|/a|/img).*?>", string.Empty),
+                        //    Timestamp = DateTime.Now.ToLongTimeString(),
+                        //    IsPrivate = true
+                        //};
+
+                        // Send the message
+                        Clients.Client(userId).newMessage(messageViewModel);
+                        Clients.Caller.newMessage(messageViewModel);
+                    }
+
                 }
 
+            }
+            catch (Exception)
+            {
+                Clients.Caller.onError("Mensaje no enviado!");
             }
         }
 
@@ -433,8 +454,15 @@ namespace Chat.Web.Hubs
 
         public override Task OnReconnected()
         {
-            var user = _Connections.Where(u => u.Username == IdentityName).First();
-            Clients.Caller.getProfileInfo(user.DisplayName, user.Avatar);
+            if (_Connections.Count>0)
+            {
+                var user = _Connections.Where(u => u.Username == IdentityName).FirstOrDefault();
+
+                if (user != null)
+                {
+                    Clients.Caller.getProfileInfo(user.DisplayName, user.Avatar);
+                }
+            }
 
             return base.OnReconnected();
         }
